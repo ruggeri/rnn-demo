@@ -2,7 +2,7 @@ from config import *
 import numpy as np
 import tensorflow as tf
 
-def build_graph(string_length):
+def build_graph(string_length, train_mode):
     # Placeholders
     start_character = tf.placeholder(
         dtype = tf.float64,
@@ -151,9 +151,12 @@ def build_graph(string_length):
     mean_loss = tf.reduce_mean(total_loss)
     accuracy = tf.reduce_mean(accuracies)
 
-    train_step = tf.train.AdamOptimizer(
-        learning_rate = LEARNING_RATE
-    ).minimize(mean_loss)
+    if train_mode:
+        train_step = tf.train.AdamOptimizer(
+            learning_rate = LEARNING_RATE
+        ).minimize(mean_loss)
+    else:
+        train_step = None
 
     graph = {
         "start_character": start_character,

@@ -8,7 +8,7 @@ with open(FNAME, 'r') as f:
 
 def split_text(text):
     int_text = [
-        to_categorical(ord(c), 256)
+        to_categorical(ord(c), NUM_CHARS)
         for c in text
     ]
 

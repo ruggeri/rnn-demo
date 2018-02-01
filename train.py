@@ -4,7 +4,10 @@ from model import build_graph
 import numpy as np
 import tensorflow as tf
 
-graph = build_graph(BATCH_STRING_LENGTH)
+graph = build_graph(
+    string_length = BATCH_STRING_LENGTH,
+    train_mode = True
+)
 
 session = tf.InteractiveSession()
 session.run(tf.global_variables_initializer())
