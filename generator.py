@@ -11,7 +11,7 @@ session.run(tf.global_variables_initializer())
 graph = build_graph(string_length = 1, train_mode = False)
 
 saver = tf.train.Saver()
-saver.restore(session, './models/model.ckpt-7')
+saver.restore(session, './models/model.ckpt-3')
 
 current_layer1_state = np.random.uniform(
     size = (1, LAYER1_SIZE),
@@ -39,6 +39,7 @@ def predict_next_char(start_char):
         ],
         feed_dict = {
             graph["start_character"]: one_hot_start_char,
+            graph["keep_prob"]: 1.0,
             graph["initial_layer1_state"]: current_layer1_state,
             graph["initial_layer2_state"]: current_layer2_state,
         }
