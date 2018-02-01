@@ -1,7 +1,6 @@
 from config import *
-from dataset import text
+from dataset import text, to_categorical
 from model import build_graph
-from keras.utils import to_categorical
 import numpy as np
 import tensorflow as tf
 
@@ -11,35 +10,27 @@ session.run(tf.global_variables_initializer())
 graph = build_graph(string_length = 1, train_mode = False)
 
 saver = tf.train.Saver()
-saver.restore(session, './models/model.ckpt-3')
+saver.restore(session, './models/model.ckpt-7')
 
-current_layer1_state = np.random.uniform(
-    size = (1, LAYER1_SIZE),
-)
-current_layer2_state = np.random.uniform(
-    size = (1, LAYER2_SIZE),
-)
+current_layer1_state = np.zeros((1, LAYER1_SIZE))
+current_layer2_state = np.zeros((1, LAYER2_SIZE))
 
 def predict_next_char(start_char):
     global current_layer1_state, current_layer2_state
 
-    one_hot_start_char = to_categorical(
-        ord(start_char),
-        NUM_CHARS
-    )
+    one_hot_start_char = to_categorical(ord(start_char))
     one_hot_start_char = np.expand_dims(
         one_hot_start_char,
         axis = 0
     )
 
-    emission_probs, curent_layer1_state, current_layer2_state = session.run(
+    emission_probs, current_layer1_state, current_layer2_state = session.run(
         [graph["final_emission_probs"],
          graph["final_layer1_state"],
          graph["final_layer2_state"],
         ],
         feed_dict = {
             graph["start_character"]: one_hot_start_char,
-            graph["keep_prob"]: 1.0,
             graph["initial_layer1_state"]: current_layer1_state,
             graph["initial_layer2_state"]: current_layer2_state,
         }
@@ -47,7 +38,6 @@ def predict_next_char(start_char):
     emission_probs = np.squeeze(emission_probs)
 
     top_5_prob = np.sort(emission_probs)[-10]
-
     emission_probs = (emission_probs >= top_5_prob) * emission_probs
     emission_probs /= np.sum(emission_probs)
 
@@ -57,9 +47,10 @@ def predict_next_char(start_char):
     ))
 
 for idx in range(BURN_IN_CHARS):
-    prev_char = predict_next_char(text[idx])
+    predict_next_char(text[idx])
 
 string = ""
+prev_char = text[BURN_IN_CHARS]
 for _ in range(CHARS_TO_GENERATE):
     prev_char = predict_next_char(prev_char)
     string += prev_char

@@ -22,7 +22,6 @@ def run_batch(current_layer1_state, current_layer2_state, start_character, batch
         ], feed_dict = {
             graph["start_character"]: start_character,
             graph["target_characters"]: batch,
-            graph["keep_prob"]: 0.50,
             graph["initial_layer1_state"]: current_layer1_state,
             graph["initial_layer2_state"]: current_layer2_state,
         }
@@ -31,12 +30,8 @@ def run_batch(current_layer1_state, current_layer2_state, start_character, batch
     return (final_layer1_state, final_layer2_state, mean_loss, accuracy)
 
 def run_epoch(epoch_idx):
-    current_layer1_state = np.random.uniform(
-        size = (BATCH_SIZE, LAYER1_SIZE),
-    )
-    current_layer2_state = np.random.uniform(
-        size = (BATCH_SIZE, LAYER2_SIZE),
-    )
+    current_layer1_state = np.zeros((BATCH_SIZE, LAYER1_SIZE))
+    current_layer2_state = np.zeros((BATCH_SIZE, LAYER2_SIZE))
 
     start_character = np.zeros((BATCH_SIZE, NUM_CHARS))
     for batch_idx, batch in enumerate(batches):
