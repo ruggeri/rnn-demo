@@ -1,4 +1,10 @@
+from config import *
 from keras.utils import to_categorical
+import numpy as np
+
+text = None
+with open(FNAME, 'r') as f:
+    text = f.read()
 
 BATCH_SIZE = 32
 NUM_CHARS = 256
@@ -14,7 +20,7 @@ def split_text(text):
     subtext_length = len(int_text) // BATCH_SIZE
     subtexts = [
         int_text[(idx * subtext_length):((idx + 1) * subtext_length)]
-        for idx in range(subtext_length)
+        for idx in range(BATCH_SIZE)
     ]
 
     num_batches = subtext_length // STRING_LENGTH
@@ -30,3 +36,5 @@ def split_text(text):
         )
 
     return batches
+
+batches = split_text(text)

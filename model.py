@@ -1,14 +1,11 @@
+from config import *
 import numpy as np
 import tensorflow as tf
-
-STRING_LENGTH = 32
-STATE_SIZE = 128
-NUM_CHARS = 256
 
 # Placeholders
 input_characters = tf.placeholder(
     dtype = tf.float64,
-    shape = (None, STRING_LENGTH, NUM_CHARS),
+    shape = (None, BATCH_STRING_LENGTH, NUM_CHARS),
     name = "input_characters",
 )
 
@@ -48,7 +45,7 @@ all_emission_logits = []
 all_emission_probs = []
 current_state = initial_state
 prev_emission = input_characters[:, 0, :]
-for string_idx in range(STRING_LENGTH - 1):
+for string_idx in range(BATCH_STRING_LENGTH - 1):
     current_emission_logits = tf.matmul(
         current_state, emission_matrix
     ) + emission_bias
@@ -71,22 +68,22 @@ for string_idx in range(STRING_LENGTH - 1):
     # Teacher forcing.
     prev_emission = input_characters[:, string_idx + 1, :]
 
+final_state = current_state
+
 # Calculate loss
 total_loss = 0.0
 accuracies = []
-for string_idx in range(STRING_LENGTH - 1):
+for string_idx in range(BATCH_STRING_LENGTH - 1):
     current_emission_logits = all_emission_logits[string_idx]
-    predicted_emission = tf.cast(
-        tf.argmax(
-            current_emission_logits,
-            axis = 1,
-        ),
-        tf.float64
+    predicted_emission = tf.argmax(current_emission_logits, axis = 1)
+
+    correct_emission = tf.argmax(
+        input_characters[:, string_idx + 1, :],
+        axis = 1
     )
-    correct_emission = input_characters[:, string_idx + 1, :]
 
     total_loss += tf.nn.softmax_cross_entropy_with_logits_v2(
-        labels = input_characters[:, string_idx, :],
+        labels = input_characters[:, string_idx + 1, :],
         logits = current_emission_logits
     )
 
@@ -104,10 +101,18 @@ for string_idx in range(STRING_LENGTH - 1):
 mean_loss = tf.reduce_mean(total_loss)
 accuracy = tf.reduce_mean(accuracies)
 
+train_step = tf.train.AdamOptimizer(
+    learning_rate = LEARNING_RATE
+).minimize(mean_loss)
+
 graph = {
     "input_characters": input_characters,
     "initial_state": initial_state,
+
+    "final_state": final_state,
+    "all_emission_probs": all_emission_probs,
+
     "mean_loss": mean_loss,
     "accuracy": accuracy,
-    "all_emission_probs": all_emission_probs
+    "train_step": train_step,
 }
