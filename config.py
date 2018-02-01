@@ -4,4 +4,7 @@ FNAME = "21839.txt"
 LEARNING_RATE = 0.001
 NUM_CHARS = 256
 NUM_EPOCHS = 100
-STATE_SIZE = 128
+LAYER1_SIZE = 128
+LAYER2_SIZE = 129
+
+# Got ~30% accuracy with no hidden layer.

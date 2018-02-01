@@ -9,17 +9,22 @@ input_characters = tf.placeholder(
     name = "input_characters",
 )
 
-initial_state = tf.placeholder(
+initial_layer1_state = tf.placeholder(
     dtype = tf.float64,
-    shape = (None, STATE_SIZE),
-    name = "initial_state",
+    shape = (None, LAYER1_SIZE),
+    name = "layer1_initial_state",
+)
+initial_layer2_state = tf.placeholder(
+    dtype = tf.float64,
+    shape = (None, LAYER2_SIZE),
+    name = "layer2_initial_state",
 )
 
 # Weights
 emission_matrix = tf.Variable(
     np.random.normal(
-        size = (STATE_SIZE, NUM_CHARS),
-        scale = np.sqrt(1 / (STATE_SIZE + NUM_CHARS))
+        size = (LAYER2_SIZE, NUM_CHARS),
+        scale = np.sqrt(1 / (LAYER2_SIZE + NUM_CHARS))
     ),
     name = "emission_matrix",
 )
@@ -28,26 +33,74 @@ emission_bias = tf.Variable(
     name = "emission_bias"
 )
 
-transition_matrix = tf.Variable(
+layer2_transition_matrix = tf.Variable(
     np.random.normal(
-        size = (STATE_SIZE + NUM_CHARS, STATE_SIZE),
-        scale = np.sqrt(1 / (STATE_SIZE + STATE_SIZE))
+        size = (LAYER1_SIZE + LAYER2_SIZE, LAYER2_SIZE),
+        scale = np.sqrt(1 / (LAYER1_SIZE + LAYER2_SIZE + LAYER2_SIZE)),
     ),
-    name = "transition_matrix",
+    name = "layer2_transition_matrix",
 )
-transition_bias = tf.Variable(
-    np.zeros((STATE_SIZE,)),
-    name = "transition_bias",
+layer2_transition_bias = tf.Variable(
+    np.zeros((LAYER2_SIZE,)),
+    name = "layer2_transition_bias",
+)
+
+layer1_to_layer2_matrix = tf.Variable(
+    np.random.normal(
+        size = (LAYER1_SIZE, LAYER2_SIZE),
+        scale = np.sqrt(1 / (LAYER1_SIZE + LAYER2_SIZE))
+    ),
+    name = "layer1_to_layer2_matrix",
+)
+layer1_to_layer2_bias = tf.Variable(
+    np.zeros((LAYER2_SIZE,)),
+    name = "layer1_to_layer2_biases",
+)
+
+layer1_transition_matrix = tf.Variable(
+    np.random.normal(
+        size = (LAYER1_SIZE + NUM_CHARS, LAYER1_SIZE),
+        scale = np.sqrt(1 / (LAYER1_SIZE + NUM_CHARS + LAYER1_SIZE)),
+    ),
+    name = "layer1_transition_matrix",
+)
+layer1_transition_bias = tf.Variable(
+    np.zeros((LAYER1_SIZE,)),
+    name = "layer1_transition_bias",
 )
 
 # Build emissions sequence.
 all_emission_logits = []
 all_emission_probs = []
-current_state = initial_state
+
+current_layer1_state = initial_layer1_state
+current_layer2_state = initial_layer2_state
 prev_emission = input_characters[:, 0, :]
 for string_idx in range(BATCH_STRING_LENGTH - 1):
+    layer1_ipt = tf.concat(
+        [current_layer1_state, prev_emission],
+        axis = 1
+    )
+
+    current_layer1_state = tf.matmul(
+        layer1_ipt,
+        layer1_transition_matrix,
+    ) + layer1_transition_bias
+    current_layer1_state = tf.nn.relu(current_layer1_state)
+
+    layer2_ipt = tf.concat(
+        [current_layer2_state, current_layer1_state],
+        axis = 1
+    )
+
+    current_layer2_state = tf.matmul(
+        layer2_ipt,
+        layer2_transition_matrix
+    ) + layer2_transition_bias
+    current_layer2_state = tf.nn.relu(current_layer2_state)
+
     current_emission_logits = tf.matmul(
-        current_state, emission_matrix
+        current_layer2_state, emission_matrix
     ) + emission_bias
     current_emission_probs = tf.nn.softmax(
         current_emission_logits,
@@ -55,20 +108,11 @@ for string_idx in range(BATCH_STRING_LENGTH - 1):
     all_emission_logits.append(current_emission_logits)
     all_emission_probs.append(current_emission_probs)
 
-    ipt = tf.concat(
-        [current_state, prev_emission],
-        axis = 1
-    )
-
-    current_state = tf.matmul(
-        ipt,
-        transition_matrix
-    ) + transition_bias
-
     # Teacher forcing.
     prev_emission = input_characters[:, string_idx + 1, :]
 
-final_state = current_state
+final_layer1_state = current_layer1_state
+final_layer2_state = current_layer2_state
 
 # Calculate loss
 total_loss = 0.0
@@ -107,9 +151,11 @@ train_step = tf.train.AdamOptimizer(
 
 graph = {
     "input_characters": input_characters,
-    "initial_state": initial_state,
+    "initial_layer1_state": initial_layer1_state,
+    "initial_layer2_state": initial_layer2_state,
 
-    "final_state": final_state,
+    "final_layer1_state": final_layer1_state,
+    "final_layer2_state": final_layer2_state,
     "all_emission_probs": all_emission_probs,
 
     "mean_loss": mean_loss,
