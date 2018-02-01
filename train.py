@@ -1,13 +1,15 @@
 from config import *
 from dataset import batches
-from model import graph
+from model import build_graph
 import numpy as np
 import tensorflow as tf
+
+graph = build_graph(BATCH_STRING_LENGTH)
 
 session = tf.InteractiveSession()
 session.run(tf.global_variables_initializer())
 
-def run_batch(current_layer1_state, current_layer2_state, batch):
+def run_batch(current_layer1_state, current_layer2_state, start_character, batch):
     _, final_layer1_state, final_layer2_state, mean_loss, accuracy = session.run(
         [graph["train_step"],
          graph["final_layer1_state"],
@@ -15,7 +17,8 @@ def run_batch(current_layer1_state, current_layer2_state, batch):
          graph["mean_loss"],
          graph["accuracy"],
         ], feed_dict = {
-            graph["input_characters"]: batch,
+            graph["start_character"]: start_character,
+            graph["target_characters"]: batch,
             graph["initial_layer1_state"]: current_layer1_state,
             graph["initial_layer2_state"]: current_layer2_state,
         }
@@ -31,12 +34,16 @@ def run_epoch(epoch_idx):
         size = (BATCH_SIZE, LAYER2_SIZE),
     )
 
+    start_character = np.zeros((BATCH_STRING_LENGTH, NUM_CHARS))
     for batch_idx, batch in enumerate(batches):
         current_layer1_state, current_layer2_state, mean_loss, accuracy = run_batch(
             current_layer1_state,
             current_layer2_state,
+            start_character,
             batch,
         )
+
+        start_character = batch[:, -1, :]
 
         print(
             f'E {epoch_idx:04d} | '
@@ -45,5 +52,8 @@ def run_epoch(epoch_idx):
             f'A {accuracy:0.2f}'
         )
 
+saver = tf.train.Saver()
+saver.save(session, './models/model.ckpt', global_step = 0)
 for epoch_idx in range(NUM_EPOCHS):
     run_epoch(epoch_idx)
+    saver.save(session, './models/model.ckpt', global_step = epoch_idx)
