@@ -22,6 +22,7 @@ def run_batch(current_layer1_state, current_layer2_state, start_character, batch
         ], feed_dict = {
             graph["start_character"]: start_character,
             graph["target_characters"]: batch,
+            graph["keep_prob"]: 0.50,
             graph["initial_layer1_state"]: current_layer1_state,
             graph["initial_layer2_state"]: current_layer2_state,
         }
