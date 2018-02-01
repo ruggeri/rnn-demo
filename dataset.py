@@ -1,6 +1,12 @@
 from config import *
-from keras.utils import to_categorical
 import numpy as np
+
+def to_categorical(idx):
+    assert idx < 256
+    assert 0 <= idx
+    res = np.zeros(NUM_CHARS)
+    res[idx] = 1.0
+    return res
 
 text = None
 with open(FNAME, 'r') as f:
@@ -8,7 +14,7 @@ with open(FNAME, 'r') as f:
 
 def split_text(text):
     int_text = [
-        to_categorical(ord(c), NUM_CHARS)
+        to_categorical(ord(c))
         for c in text
     ]
 
@@ -22,15 +28,12 @@ def split_text(text):
     num_batches = subtext_length // BATCH_STRING_LENGTH
     batches = []
     for batch_idx in range(num_batches):
-        batch = [
-            subtext[(batch_idx * BATCH_STRING_LENGTH):((batch_idx + 1) * BATCH_STRING_LENGTH)]
-            for subtext in subtexts
-        ]
+        batch_start = batch_idx * BATCH_STRING_LENGTH
+        batch_end = (batch_idx + 1) * BATCH_STRING_LENGTH
+        batch = [subtext[batch_start:batch_end] for subtext in subtexts]
+        batches.append(batch)
 
-        batches.append(
-            np.array(batch)
-        )
-
-    return batches
+    return np.array(batches)
 
 batches = split_text(text)
+print(batches.shape)

@@ -26,7 +26,7 @@ def build_graph(string_length, train_mode):
         name = "layer2_initial_state",
     )
 
-    keep_prob = tf.placeholder(dtype=tf.float64, shape = (), name = "keep_prob")
+    # keep_prob = tf.placeholder(dtype=tf.float64, shape = (), name = "keep_prob")
 
     # Weights
     emission_matrix = tf.Variable(
@@ -51,18 +51,6 @@ def build_graph(string_length, train_mode):
     layer2_transition_bias = tf.Variable(
         np.zeros((LAYER2_SIZE,)),
         name = "layer2_transition_bias",
-    )
-
-    layer1_to_layer2_matrix = tf.Variable(
-        np.random.normal(
-            size = (LAYER1_SIZE, LAYER2_SIZE),
-            scale = np.sqrt(1 / (LAYER1_SIZE + LAYER2_SIZE))
-        ),
-        name = "layer1_to_layer2_matrix",
-    )
-    layer1_to_layer2_bias = tf.Variable(
-        np.zeros((LAYER2_SIZE,)),
-        name = "layer1_to_layer2_biases",
     )
 
     layer1_transition_matrix = tf.Variable(
@@ -95,9 +83,9 @@ def build_graph(string_length, train_mode):
             layer1_transition_matrix,
         ) + layer1_transition_bias
         current_layer1_state = tf.nn.relu(current_layer1_state)
-        current_layer1_state = tf.nn.dropout(
-            current_layer1_state, keep_prob = keep_prob
-        )
+        # current_layer1_state = tf.nn.dropout(
+        #     current_layer1_state, keep_prob = keep_prob
+        # )
 
         layer2_ipt = tf.concat(
             [current_layer2_state, current_layer1_state],
@@ -109,9 +97,9 @@ def build_graph(string_length, train_mode):
             layer2_transition_matrix
         ) + layer2_transition_bias
         current_layer2_state = tf.nn.relu(current_layer2_state)
-        current_layer2_state = tf.nn.dropout(
-            current_layer2_state, keep_prob = keep_prob
-        )
+        # current_layer2_state = tf.nn.dropout(
+        #     current_layer2_state, keep_prob = keep_prob
+        # )
 
         current_emission_logits = tf.matmul(
             current_layer2_state, emission_matrix
@@ -178,7 +166,7 @@ def build_graph(string_length, train_mode):
     graph = {
         "start_character": start_character,
         "target_characters": target_characters,
-        "keep_prob": keep_prob,
+        # "keep_prob": keep_prob,
         "initial_layer1_state": initial_layer1_state,
         "initial_layer2_state": initial_layer2_state,
 
