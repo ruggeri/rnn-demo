@@ -37,7 +37,7 @@ def run_epoch(epoch_idx):
         size = (BATCH_SIZE, LAYER2_SIZE),
     )
 
-    start_character = np.zeros((BATCH_STRING_LENGTH, NUM_CHARS))
+    start_character = np.zeros((BATCH_SIZE, NUM_CHARS))
     for batch_idx, batch in enumerate(batches):
         current_layer1_state, current_layer2_state, mean_loss, accuracy = run_batch(
             current_layer1_state,

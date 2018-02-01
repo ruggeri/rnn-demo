@@ -20,7 +20,6 @@ current_layer2_state = np.random.uniform(
     size = (1, LAYER2_SIZE),
 )
 
-
 def predict_next_char(start_char):
     global current_layer1_state, current_layer2_state
 
@@ -45,6 +44,11 @@ def predict_next_char(start_char):
         }
     )
     emission_probs = np.squeeze(emission_probs)
+
+    top_5_prob = np.sort(emission_probs)[-10]
+
+    emission_probs = (emission_probs >= top_5_prob) * emission_probs
+    emission_probs /= np.sum(emission_probs)
 
     return chr(np.random.choice(
         np.arange(NUM_CHARS),
