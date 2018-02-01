@@ -111,7 +111,11 @@ def build_graph(string_length, train_mode):
         current_emission_probs = tf.nn.softmax(
             current_emission_logits,
         )
+
         all_emission_logits.append(current_emission_logits)
+        #all_emission_logits.append(
+        #    1 * current_emission_logits + 1 * target_characters[:, string_idx, :]
+        #)
         all_emission_probs.append(current_emission_probs)
 
         # Teacher forcing.
@@ -123,7 +127,7 @@ def build_graph(string_length, train_mode):
     # Calculate loss
     total_loss = 0.0
     accuracies = []
-    for string_idx in range(string_length - 1):
+    for string_idx in range(string_length):
         current_emission_logits = all_emission_logits[string_idx]
         predicted_emission = tf.argmax(current_emission_logits, axis = 1)
 
@@ -152,9 +156,14 @@ def build_graph(string_length, train_mode):
     accuracy = tf.reduce_mean(accuracies)
 
     if train_mode:
-        train_step = tf.train.AdamOptimizer(
+        optimizer = tf.train.AdamOptimizer(
             learning_rate = LEARNING_RATE
-        ).minimize(mean_loss)
+        )
+
+        #gradients, variables = zip(*optimizer.compute_gradients(mean_loss))
+        #gradients, _ = tf.clip_by_global_norm(gradients, GRADIENT_CLIP)
+        #train_step = optimizer.apply_gradients(zip(gradients, variables))
+        train_step = optimizer.minimize(mean_loss)
     else:
         train_step = None
 
