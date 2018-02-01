@@ -12,11 +12,12 @@ graph = build_graph(
 session = tf.InteractiveSession()
 session.run(tf.global_variables_initializer())
 
-def run_batch(current_layer1_state, current_layer2_state, start_character, batch):
-    _, final_layer1_state, final_layer2_state, mean_loss, accuracy = session.run(
+def run_batch(current_layer1_state, current_layer2_state, current_layer3_state, start_character, batch):
+    _, final_layer1_state, final_layer2_state, final_layer3_state, mean_loss, accuracy = session.run(
         [graph["train_step"],
          graph["final_layer1_state"],
          graph["final_layer2_state"],
+         graph["final_layer3_state"],
          graph["mean_loss"],
          graph["accuracy"],
         ], feed_dict = {
@@ -24,20 +25,23 @@ def run_batch(current_layer1_state, current_layer2_state, start_character, batch
             graph["target_characters"]: batch,
             graph["initial_layer1_state"]: current_layer1_state,
             graph["initial_layer2_state"]: current_layer2_state,
+            graph["initial_layer3_state"]: current_layer3_state,
         }
     )
 
-    return (final_layer1_state, final_layer2_state, mean_loss, accuracy)
+    return (final_layer1_state, final_layer2_state, final_layer3_state, mean_loss, accuracy)
 
 def run_epoch(epoch_idx):
     current_layer1_state = np.zeros((BATCH_SIZE, LAYER1_SIZE))
     current_layer2_state = np.zeros((BATCH_SIZE, LAYER2_SIZE))
+    current_layer3_state = np.zeros((BATCH_SIZE, LAYER3_SIZE))
 
     start_character = np.zeros((BATCH_SIZE, NUM_CHARS))
     for batch_idx, batch in enumerate(batches):
-        current_layer1_state, current_layer2_state, mean_loss, accuracy = run_batch(
+        current_layer1_state, current_layer2_state, current_layer3_state, mean_loss, accuracy = run_batch(
             current_layer1_state,
             current_layer2_state,
+            current_layer3_state,
             start_character,
             batch,
         )

@@ -25,18 +25,35 @@ def build_graph(string_length, train_mode):
         shape = (None, LAYER2_SIZE),
         name = "layer2_initial_state",
     )
+    initial_layer3_state = tf.placeholder(
+        dtype = tf.float64,
+        shape = (None, LAYER3_SIZE),
+        name = "layer3_initial_state",
+    )
 
     # Weights
     emission_matrix = tf.Variable(
         np.random.normal(
-            size = (LAYER2_SIZE, NUM_CHARS),
-            scale = np.sqrt(1 / (LAYER2_SIZE + NUM_CHARS))
+            size = (LAYER3_SIZE, NUM_CHARS),
+            scale = np.sqrt(1 / (LAYER3_SIZE + NUM_CHARS))
         ),
         name = "emission_matrix",
     )
     emission_bias = tf.Variable(
         np.zeros((NUM_CHARS,)),
         name = "emission_bias"
+    )
+
+    layer3_transition_matrix = tf.Variable(
+        np.random.normal(
+            size = (LAYER2_SIZE + LAYER3_SIZE, LAYER3_SIZE),
+            scale = np.sqrt(1 / (LAYER2_SIZE + LAYER3_SIZE + LAYER3_SIZE)),
+        ),
+        name = "layer3_transition_matrix",
+    )
+    layer3_transition_bias = tf.Variable(
+        np.zeros((LAYER3_SIZE,)),
+        name = "layer3_transition_bias",
     )
 
     layer2_transition_matrix = tf.Variable(
@@ -69,6 +86,7 @@ def build_graph(string_length, train_mode):
 
     current_layer1_state = initial_layer1_state
     current_layer2_state = initial_layer2_state
+    current_layer3_state = initial_layer3_state
     prev_emission = start_character
     for string_idx in range(string_length):
         layer1_ipt = tf.concat(
@@ -93,8 +111,19 @@ def build_graph(string_length, train_mode):
         ) + layer2_transition_bias
         current_layer2_state = tf.nn.relu(current_layer2_state)
 
+        layer3_ipt = tf.concat(
+            [current_layer3_state, current_layer2_state],
+            axis = 1
+        )
+
+        current_layer3_state = tf.matmul(
+            layer3_ipt,
+            layer3_transition_matrix
+        ) + layer3_transition_bias
+        current_layer3_state = tf.nn.relu(current_layer3_state)
+
         current_emission_logits = tf.matmul(
-            current_layer2_state, emission_matrix
+            current_layer3_state, emission_matrix
         ) + emission_bias
         current_emission_probs = tf.nn.softmax(
             current_emission_logits,
@@ -108,6 +137,7 @@ def build_graph(string_length, train_mode):
 
     final_layer1_state = current_layer1_state
     final_layer2_state = current_layer2_state
+    final_layer3_state = current_layer3_state
 
     # Calculate loss
     total_loss = 0.0
@@ -157,9 +187,11 @@ def build_graph(string_length, train_mode):
         "target_characters": target_characters,
         "initial_layer1_state": initial_layer1_state,
         "initial_layer2_state": initial_layer2_state,
+        "initial_layer3_state": initial_layer3_state,
 
         "final_layer1_state": final_layer1_state,
         "final_layer2_state": final_layer2_state,
+        "final_layer3_state": final_layer3_state,
         "final_emission_probs": all_emission_probs[-1],
 
         "mean_loss": mean_loss,
