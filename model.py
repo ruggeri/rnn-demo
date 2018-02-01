@@ -129,7 +129,7 @@ for string_idx in range(BATCH_STRING_LENGTH - 1):
     total_loss += tf.nn.softmax_cross_entropy_with_logits_v2(
         labels = input_characters[:, string_idx + 1, :],
         logits = current_emission_logits
-    )
+    ) / (BATCH_STRING_LENGTH - 1)
 
     accuracy = tf.reduce_mean(
         tf.cast(

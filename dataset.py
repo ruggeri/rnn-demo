@@ -6,10 +6,6 @@ text = None
 with open(FNAME, 'r') as f:
     text = f.read()
 
-BATCH_SIZE = 32
-NUM_CHARS = 256
-STRING_LENGTH = 32
-
 def split_text(text):
     int_text = [
         to_categorical(ord(c), 256)
@@ -23,11 +19,11 @@ def split_text(text):
         for idx in range(BATCH_SIZE)
     ]
 
-    num_batches = subtext_length // STRING_LENGTH
+    num_batches = subtext_length // BATCH_STRING_LENGTH
     batches = []
     for batch_idx in range(num_batches):
         batch = [
-            subtext[(batch_idx * STRING_LENGTH):((batch_idx + 1) * STRING_LENGTH)]
+            subtext[(batch_idx * BATCH_STRING_LENGTH):((batch_idx + 1) * BATCH_STRING_LENGTH)]
             for subtext in subtexts
         ]
 
