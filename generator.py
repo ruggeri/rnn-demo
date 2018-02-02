@@ -10,13 +10,14 @@ session.run(tf.global_variables_initializer())
 graph = build_graph(string_length = 1, train_mode = False)
 
 saver = tf.train.Saver()
-saver.restore(session, './models/model.ckpt-7')
+saver.restore(session, './models/model.ckpt-47')
 
 current_layer1_state = np.zeros((1, LAYER1_SIZE))
 current_layer2_state = np.zeros((1, LAYER2_SIZE))
+current_layer3_state = np.zeros((1, LAYER3_SIZE))
 
 def predict_next_char(start_char):
-    global current_layer1_state, current_layer2_state
+    global current_layer1_state, current_layer2_state, current_layer3_state
 
     one_hot_start_char = to_categorical(ord(start_char))
     one_hot_start_char = np.expand_dims(
@@ -24,20 +25,22 @@ def predict_next_char(start_char):
         axis = 0
     )
 
-    emission_probs, current_layer1_state, current_layer2_state = session.run(
+    emission_probs, current_layer1_state, current_layer2_state, current_layer3_state = session.run(
         [graph["final_emission_probs"],
          graph["final_layer1_state"],
          graph["final_layer2_state"],
+         graph["final_layer3_state"],
         ],
         feed_dict = {
             graph["start_character"]: one_hot_start_char,
             graph["initial_layer1_state"]: current_layer1_state,
             graph["initial_layer2_state"]: current_layer2_state,
+            graph["initial_layer3_state"]: current_layer3_state,
         }
     )
     emission_probs = np.squeeze(emission_probs)
 
-    top_5_prob = np.sort(emission_probs)[-10]
+    top_5_prob = np.sort(emission_probs)[-5]
     emission_probs = (emission_probs >= top_5_prob) * emission_probs
     emission_probs /= np.sum(emission_probs)
 
