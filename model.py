@@ -12,11 +12,17 @@ def build_graph(string_length, train_mode):
         name = "target_characters"
     )
     # 256 zeros for the initial state.
-    initial_state = tf.placeholder(
+    initial_layer1_state = tf.placeholder(
         tf.float64,
         (None, LAYER1_SIZE),
-        name = "initial_state"
+        name = "initial_layer1_state"
     )
+    initial_layer2_state = tf.placeholder(
+        tf.float64,
+        (None, LAYER2_SIZE),
+        name = "initial_layer2_state"
+    )
+
     # Character zero because no prior character ever written.
     start_character = tf.placeholder(
         tf.float64,
@@ -36,10 +42,22 @@ def build_graph(string_length, train_mode):
         name = "layer1_biases"
     )
 
+    layer2_transition_matrix = tf.Variable(
+        np.random.normal(
+            size = (LAYER2_SIZE + LAYER1_SIZE, LAYER2_SIZE),
+            scale = np.sqrt(1 / (LAYER2_SIZE + LAYER1_SIZE + LAYER2_SIZE))
+        ),
+        name = "layer2_transition_matrix"
+    )
+    layer2_biases = tf.Variable(
+        np.zeros(LAYER2_SIZE),
+        name = "layer2_biases"
+    )
+
     emissions_matrix = tf.Variable(
         np.random.normal(
-            size = (LAYER1_SIZE, NUM_CHARS),
-            scale = np.sqrt(1 / (LAYER1_SIZE + NUM_CHARS))
+            size = (LAYER2_SIZE, NUM_CHARS),
+            scale = np.sqrt(1 / (LAYER2_SIZE + NUM_CHARS))
         ),
         name = "emissions_matrix"
     )
@@ -49,7 +67,8 @@ def build_graph(string_length, train_mode):
         name = "emissions_biases"
     )
 
-    current_layer1_state = initial_state
+    current_layer1_state = initial_layer1_state
+    current_layer2_state = initial_layer2_state
     current_character = start_character
     all_emission_probability_logits = []
     all_emission_probabilities = []
@@ -66,10 +85,22 @@ def build_graph(string_length, train_mode):
             current_layer1_state
         )
 
+        ipt2 = tf.concat([
+            current_layer2_state,
+            next_layer1_state,
+        ], axis = 1)
+        next_layer2_state = tf.matmul(
+            ipt2,
+            layer2_transition_matrix
+        ) + layer2_biases
+        next_layer2_state = tf.nn.relu(
+            current_layer2_state
+        )
+
         # vector of size NUM_CHARS, and the range of values?
         # -inf to +inf
         next_emission_probability_logits = tf.matmul(
-            next_layer1_state,
+            next_layer2_state,
             emissions_matrix
         ) + emissions_biases
         all_emission_probability_logits.append(
@@ -84,6 +115,7 @@ def build_graph(string_length, train_mode):
 
         # teacher forcing
         current_layer1_state = next_layer1_state
+        current_layer2_state = next_layer2_state
         current_character = target_characters[:, string_idx, :]
 
     # Compute losses:
@@ -122,14 +154,17 @@ def build_graph(string_length, train_mode):
     ).minimize(total_mean_loss)
 
     final_layer1_state = current_layer1_state
+    final_layer2_state = current_layer2_state
 
     return {
         "target_characters": target_characters,
-        "initial_state": initial_state,
+        "initial_layer1_state": initial_layer1_state,
+        "initial_layer2_state": initial_layer2_state,
         "start_character": start_character,
 
         "total_mean_loss": total_mean_loss,
         "total_accuracy": total_accuracy,
         "train_step": train_step,
-        "final_layer1_state": final_layer1_state
+        "final_layer1_state": final_layer1_state,
+        "final_layer2_state": final_layer2_state
     }
