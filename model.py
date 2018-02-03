@@ -4,167 +4,132 @@ import tensorflow as tf
 
 def build_graph(string_length, train_mode):
     # Placeholders
-    start_character = tf.placeholder(
-        dtype = tf.float64,
-        shape = (None, NUM_CHARS),
-        name = "start_character",
-    )
+
+    # The family of Dashwood
     target_characters = tf.placeholder(
-        dtype = tf.float64,
-        shape = (None, string_length, NUM_CHARS),
-        name = "target_characters",
+        tf.float64,
+        (None, BATCH_STRING_LENGTH, NUM_CHARS),
+        name = "target_characters"
     )
-
-    initial_layer1_state = tf.placeholder(
-        dtype = tf.float64,
-        shape = (None, LAYER1_SIZE),
-        name = "layer1_initial_state",
+    # 256 zeros for the initial state.
+    initial_state = tf.placeholder(
+        tf.float64,
+        (None, LAYER1_SIZE),
+        name = "initial_state"
     )
-    initial_layer2_state = tf.placeholder(
-        dtype = tf.float64,
-        shape = (None, LAYER2_SIZE),
-        name = "layer2_initial_state",
-    )
-
-    # Weights
-    emission_matrix = tf.Variable(
-        np.random.normal(
-            size = (LAYER2_SIZE, NUM_CHARS),
-            scale = np.sqrt(1 / (LAYER2_SIZE + NUM_CHARS))
-        ),
-        name = "emission_matrix",
-    )
-    emission_bias = tf.Variable(
-        np.zeros((NUM_CHARS,)),
-        name = "emission_bias"
-    )
-
-    layer2_transition_matrix = tf.Variable(
-        np.random.normal(
-            size = (LAYER1_SIZE + LAYER2_SIZE, LAYER2_SIZE),
-            scale = np.sqrt(1 / (LAYER1_SIZE + LAYER2_SIZE + LAYER2_SIZE)),
-        ),
-        name = "layer2_transition_matrix",
-    )
-    layer2_transition_bias = tf.Variable(
-        np.zeros((LAYER2_SIZE,)),
-        name = "layer2_transition_bias",
+    # Character zero because no prior character ever written.
+    start_character = tf.placeholder(
+        tf.float64,
+        (None, NUM_CHARS),
+        name = "start_character"
     )
 
     layer1_transition_matrix = tf.Variable(
         np.random.normal(
             size = (LAYER1_SIZE + NUM_CHARS, LAYER1_SIZE),
-            scale = np.sqrt(1 / (LAYER1_SIZE + NUM_CHARS + LAYER1_SIZE)),
+            scale = np.sqrt(1 / (LAYER1_SIZE + NUM_CHARS + LAYER1_SIZE))
         ),
-        name = "layer1_transition_matrix",
+        name = "layer1_transition_matrix"
     )
-    layer1_transition_bias = tf.Variable(
-        np.zeros((LAYER1_SIZE,)),
-        name = "layer1_transition_bias",
+    layer1_biases = tf.Variable(
+        np.zeros(LAYER1_SIZE),
+        name = "layer1_biases"
     )
 
-    # Build emissions sequence.
-    all_emission_logits = []
-    all_emission_probs = []
+    emissions_matrix = tf.Variable(
+        np.random.normal(
+            size = (LAYER1_SIZE, NUM_CHARS),
+            scale = np.sqrt(1 / (LAYER1_SIZE + NUM_CHARS))
+        ),
+        name = "emissions_matrix"
+    )
+    emissions_biases = tf.Variable(
+        np.zeros(NUM_CHARS),
+        # dtype = tf.float64,
+        name = "emissions_biases"
+    )
 
-    current_layer1_state = initial_layer1_state
-    current_layer2_state = initial_layer2_state
-    prev_emission = start_character
-    for string_idx in range(string_length):
-        layer1_ipt = tf.concat(
-            [current_layer1_state, prev_emission],
+    current_layer1_state = initial_state
+    current_character = start_character
+    all_emission_probability_logits = []
+    all_emission_probabilities = []
+    for string_idx in range(BATCH_STRING_LENGTH):
+        ipt1 = tf.concat([
+            current_layer1_state,
+            current_character,
+        ], axis = 1)
+        next_layer1_state = tf.matmul(
+            ipt1,
+            layer1_transition_matrix
+        ) + layer1_biases
+        next_layer1_state = tf.nn.relu(
+            current_layer1_state
+        )
+
+        # vector of size NUM_CHARS, and the range of values?
+        # -inf to +inf
+        next_emission_probability_logits = tf.matmul(
+            next_layer1_state,
+            emissions_matrix
+        ) + emissions_biases
+        all_emission_probability_logits.append(
+            next_emission_probability_logits
+        )
+        # vector of size NUM_CHARS, values are zero to one.
+        # vector must sum to one, because it's a prob distribution.
+        next_emission_probabilities = tf.nn.softmax(
+            next_emission_probability_logits
+        )
+        all_emission_probabilities.append(next_emission_probabilities)
+
+        # teacher forcing
+        current_layer1_state = next_layer1_state
+        current_character = target_characters[:, string_idx, :]
+
+    # Compute losses:
+    all_losses = []
+    all_accuracies = []
+    for string_idx, logits in enumerate(all_emission_probability_logits):
+        correct_answer = target_characters[:, string_idx, :]
+        correct_answer_code = tf.argmax(
+            correct_answer,
             axis = 1
         )
-
-        current_layer1_state = tf.matmul(
-            layer1_ipt,
-            layer1_transition_matrix,
-        ) + layer1_transition_bias
-        current_layer1_state = tf.nn.relu(current_layer1_state)
-
-        layer2_ipt = tf.concat(
-            [current_layer2_state, current_layer1_state],
+        guessed_letter_code = tf.argmax(
+            logits,
             axis = 1
         )
-
-        current_layer2_state = tf.matmul(
-            layer2_ipt,
-            layer2_transition_matrix
-        ) + layer2_transition_bias
-        current_layer2_state = tf.nn.relu(current_layer2_state)
-
-        current_emission_logits = tf.matmul(
-            current_layer2_state, emission_matrix
-        ) + emission_bias
-        current_emission_probs = tf.nn.softmax(
-            current_emission_logits,
+        current_loss = tf.reduce_mean(
+            tf.nn.softmax_cross_entropy_with_logits_v2(
+                labels = correct_answer,
+                logits = logits
+            )
         )
-
-        all_emission_logits.append(current_emission_logits)
-        all_emission_probs.append(current_emission_probs)
-
-        # Teacher forcing.
-        prev_emission = target_characters[:, string_idx, :]
-
-    final_layer1_state = current_layer1_state
-    final_layer2_state = current_layer2_state
-
-    # Calculate loss
-    total_loss = 0.0
-    accuracies = []
-    for string_idx in range(string_length):
-        current_emission_logits = all_emission_logits[string_idx]
-        predicted_emission = tf.argmax(current_emission_logits, axis = 1)
-
-        correct_emission = tf.argmax(
-            target_characters[:, string_idx, :],
-            axis = 1
-        )
-
-        total_loss += tf.nn.softmax_cross_entropy_with_logits_v2(
-            labels = target_characters[:, string_idx, :],
-            logits = current_emission_logits
-        ) / string_length
-
-        accuracy = tf.reduce_mean(
+        current_accuracy = tf.reduce_mean(
             tf.cast(
-                tf.equal(
-                    predicted_emission,
-                    correct_emission
-                ),
+                tf.equal(correct_answer_code, guessed_letter_code),
                 tf.float64
             )
         )
-        accuracies.append(accuracy)
+        all_losses.append(current_loss)
+        all_accuracies.append(current_accuracy)
 
-    mean_loss = tf.reduce_mean(total_loss)
-    accuracy = tf.reduce_mean(accuracies)
+    total_mean_loss = tf.reduce_mean(all_losses)
+    total_accuracy = tf.reduce_mean(all_accuracies)
 
-    if train_mode:
-        optimizer = tf.train.AdamOptimizer(
-            learning_rate = LEARNING_RATE
-        )
+    train_step = tf.train.AdamOptimizer(
+        learning_rate = LEARNING_RATE
+    ).minimize(total_mean_loss)
 
-        #gradients, variables = zip(*optimizer.compute_gradients(mean_loss))
-        #gradients, _ = tf.clip_by_global_norm(gradients, GRADIENT_CLIP)
-        #train_step = optimizer.apply_gradients(zip(gradients, variables))
-        train_step = optimizer.minimize(mean_loss)
-    else:
-        train_step = None
+    final_layer1_state = current_layer1_state
 
-    graph = {
-        "start_character": start_character,
+    return {
         "target_characters": target_characters,
-        "initial_layer1_state": initial_layer1_state,
-        "initial_layer2_state": initial_layer2_state,
+        "initial_state": initial_state,
+        "start_character": start_character,
 
-        "final_layer1_state": final_layer1_state,
-        "final_layer2_state": final_layer2_state,
-        "final_emission_probs": all_emission_probs[-1],
-
-        "mean_loss": mean_loss,
-        "accuracy": accuracy,
+        "total_mean_loss": total_mean_loss,
+        "total_accuracy": total_accuracy,
         "train_step": train_step,
+        "final_layer1_state": final_layer1_state
     }
-
-    return graph

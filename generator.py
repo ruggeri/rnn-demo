@@ -10,7 +10,7 @@ session.run(tf.global_variables_initializer())
 graph = build_graph(string_length = 1, train_mode = False)
 
 saver = tf.train.Saver()
-saver.restore(session, './models/model.ckpt-7')
+saver.restore(session, './models/model.ckpt-18')
 
 current_layer1_state = np.zeros((1, LAYER1_SIZE))
 current_layer2_state = np.zeros((1, LAYER2_SIZE))
