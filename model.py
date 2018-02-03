@@ -82,7 +82,7 @@ def build_graph(string_length, train_mode):
             layer1_transition_matrix
         ) + layer1_biases
         next_layer1_state = tf.nn.relu(
-            current_layer1_state
+            next_layer1_state
         )
 
         ipt2 = tf.concat([
@@ -94,7 +94,7 @@ def build_graph(string_length, train_mode):
             layer2_transition_matrix
         ) + layer2_biases
         next_layer2_state = tf.nn.relu(
-            current_layer2_state
+            next_layer2_state
         )
 
         # vector of size NUM_CHARS, and the range of values?
