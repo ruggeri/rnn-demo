@@ -5,7 +5,7 @@ import tensorflow as tf
 forget_gate2_weights = tf.Variable(
     np.random.normal(
         size = (LAYER2_SIZE + LAYER1_SIZE, LAYER2_SIZE),
-        scale = np.sqrt(1 / (LAYER2_SIZE + NUM_CHARS + LAYER2_SIZE))
+        scale = np.sqrt(1 / (LAYER2_SIZE + LAYER1_SIZE + LAYER2_SIZE))
     ),
     name = "forget_gate2_weights"
 )
@@ -16,8 +16,8 @@ forget_gate2_biases = tf.Variable(
 
 write_gate2_weights = tf.Variable(
     np.random.normal(
-        size = (LAYER2_SIZE + NUM_CHARS, LAYER2_SIZE),
-        scale = np.sqrt(1 / (LAYER2_SIZE + NUM_CHARS + LAYER2_SIZE))
+        size = (LAYER2_SIZE + LAYER1_SIZE, LAYER2_SIZE),
+        scale = np.sqrt(1 / (LAYER2_SIZE + LAYER1_SIZE + LAYER2_SIZE))
     ),
     name = "write_gate2_weights"
 )
@@ -28,8 +28,8 @@ write_gate2_biases = tf.Variable(
 
 update_gate2_weights = tf.Variable(
     np.random.normal(
-        size = (LAYER2_SIZE + NUM_CHARS, LAYER2_SIZE),
-        scale = np.sqrt(1 / (LAYER2_SIZE + NUM_CHARS + LAYER2_SIZE))
+        size = (LAYER2_SIZE + LAYER1_SIZE, LAYER2_SIZE),
+        scale = np.sqrt(1 / (LAYER2_SIZE + LAYER1_SIZE + LAYER2_SIZE))
     ),
     name = "update_gate2_weights"
 )
@@ -40,8 +40,8 @@ update_gate2_biases = tf.Variable(
 
 output_gate2_weights = tf.Variable(
     np.random.normal(
-        size = (LAYER2_SIZE + NUM_CHARS, LAYER2_SIZE),
-        scale = np.sqrt(1 / (LAYER2_SIZE + NUM_CHARS + LAYER2_SIZE))
+        size = (LAYER2_SIZE + LAYER1_SIZE, LAYER2_SIZE),
+        scale = np.sqrt(1 / (LAYER2_SIZE + LAYER1_SIZE + LAYER2_SIZE))
     ),
     name = "output_gate2_weights"
 )
