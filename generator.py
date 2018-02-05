@@ -13,10 +13,12 @@ saver = tf.train.Saver()
 saver.restore(session, './models/model.ckpt-18')
 
 current_layer1_state = np.zeros((1, LAYER1_SIZE))
+current_layer1_output = np.zeros((1, LAYER1_SIZE))
 current_layer2_state = np.zeros((1, LAYER2_SIZE))
+current_layer2_output = np.zeros((1, LAYER2_SIZE))
 
 def predict_next_char(start_char):
-    global current_layer1_state, current_layer2_state
+    global current_layer1_state, current_layer1_output, current_layer2_state, current_layer2_output
 
     one_hot_start_char = to_categorical(ord(start_char))
     one_hot_start_char = np.expand_dims(
@@ -24,15 +26,19 @@ def predict_next_char(start_char):
         axis = 0
     )
 
-    emission_probs, current_layer1_state, current_layer2_state = session.run(
+    emission_probs, current_layer1_state, current_layer1_output, current_layer2_state, current_layer2_output = session.run(
         [graph["final_emission_probs"],
          graph["final_layer1_state"],
+         graph["final_layer1_output"],
          graph["final_layer2_state"],
+         graph["final_layer2_output"],
         ],
         feed_dict = {
             graph["start_character"]: one_hot_start_char,
             graph["initial_layer1_state"]: current_layer1_state,
+            graph["initial_layer1_output"]: current_layer1_output,
             graph["initial_layer2_state"]: current_layer2_state,
+            graph["initial_layer2_output"]: current_layer2_output,
         }
     )
     emission_probs = np.squeeze(emission_probs)

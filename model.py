@@ -133,6 +133,8 @@ def build_graph(string_length, train_mode):
     final_layer2_state = current_layer2_state
     final_layer2_output = current_layer2_output
 
+    final_emission_probs = all_emission_probabilities[-1]
+
     return {
         "target_characters": target_characters,
         "initial_layer1_state": initial_layer1_state,
@@ -149,4 +151,6 @@ def build_graph(string_length, train_mode):
         "final_layer1_output": final_layer1_output,
         "final_layer2_state": final_layer2_state,
         "final_layer2_output": final_layer2_output,
+
+        "final_emission_probs": final_emission_probs,
     }
