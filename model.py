@@ -1,4 +1,6 @@
 from config import *
+from lstm1 import lstm_layer1
+from lstm2 import lstm_layer2
 import numpy as np
 import tensorflow as tf
 
@@ -17,10 +19,20 @@ def build_graph(string_length, train_mode):
         (None, LAYER1_SIZE),
         name = "initial_layer1_state"
     )
+    initial_layer1_output = tf.placeholder(
+        tf.float64,
+        (None, LAYER1_SIZE),
+        name = "initial_layer1_output",
+    )
     initial_layer2_state = tf.placeholder(
         tf.float64,
         (None, LAYER2_SIZE),
         name = "initial_layer2_state"
+    )
+    initial_layer2_output = tf.placeholder(
+        tf.float64,
+        (None, LAYER2_SIZE),
+        name = "initial_layer2_output",
     )
 
     # Character zero because no prior character ever written.
@@ -28,30 +40,6 @@ def build_graph(string_length, train_mode):
         tf.float64,
         (None, NUM_CHARS),
         name = "start_character"
-    )
-
-    layer1_transition_matrix = tf.Variable(
-        np.random.normal(
-            size = (LAYER1_SIZE + NUM_CHARS, LAYER1_SIZE),
-            scale = np.sqrt(1 / (LAYER1_SIZE + NUM_CHARS + LAYER1_SIZE))
-        ),
-        name = "layer1_transition_matrix"
-    )
-    layer1_biases = tf.Variable(
-        np.zeros(LAYER1_SIZE),
-        name = "layer1_biases"
-    )
-
-    layer2_transition_matrix = tf.Variable(
-        np.random.normal(
-            size = (LAYER2_SIZE + LAYER1_SIZE, LAYER2_SIZE),
-            scale = np.sqrt(1 / (LAYER2_SIZE + LAYER1_SIZE + LAYER2_SIZE))
-        ),
-        name = "layer2_transition_matrix"
-    )
-    layer2_biases = tf.Variable(
-        np.zeros(LAYER2_SIZE),
-        name = "layer2_biases"
     )
 
     emissions_matrix = tf.Variable(
@@ -63,44 +51,29 @@ def build_graph(string_length, train_mode):
     )
     emissions_biases = tf.Variable(
         np.zeros(NUM_CHARS),
-        # dtype = tf.float64,
         name = "emissions_biases"
     )
 
     current_layer1_state = initial_layer1_state
+    current_layer1_output = initial_layer1_output
     current_layer2_state = initial_layer2_state
+    current_layer2_output = initial_layer2_output
     current_character = start_character
     all_emission_probability_logits = []
     all_emission_probabilities = []
     for string_idx in range(BATCH_STRING_LENGTH):
-        ipt1 = tf.concat([
-            current_layer1_state,
-            current_character,
-        ], axis = 1)
-        next_layer1_state = tf.matmul(
-            ipt1,
-            layer1_transition_matrix
-        ) + layer1_biases
-        next_layer1_state = tf.nn.relu(
-            next_layer1_state
+        next_layer1_state, next_layer1_output = lstm_layer1(
+            current_layer1_state, current_layer1_output, current_character
         )
 
-        ipt2 = tf.concat([
-            current_layer2_state,
-            next_layer1_state,
-        ], axis = 1)
-        next_layer2_state = tf.matmul(
-            ipt2,
-            layer2_transition_matrix
-        ) + layer2_biases
-        next_layer2_state = tf.nn.relu(
-            next_layer2_state
+        next_layer2_state, next_layer2_output = lstm_layer2(
+            current_layer2_state, current_layer2_output, next_layer1_output
         )
 
         # vector of size NUM_CHARS, and the range of values?
         # -inf to +inf
         next_emission_probability_logits = tf.matmul(
-            next_layer2_state,
+            next_layer2_output,
             emissions_matrix
         ) + emissions_biases
         all_emission_probability_logits.append(
@@ -115,7 +88,9 @@ def build_graph(string_length, train_mode):
 
         # teacher forcing
         current_layer1_state = next_layer1_state
+        current_layer1_output = next_layer1_output
         current_layer2_state = next_layer2_state
+        current_layer2_output = next_layer2_output
         current_character = target_characters[:, string_idx, :]
 
     # Compute losses:
@@ -154,17 +129,24 @@ def build_graph(string_length, train_mode):
     ).minimize(total_mean_loss)
 
     final_layer1_state = current_layer1_state
+    final_layer1_output = current_layer1_output
     final_layer2_state = current_layer2_state
+    final_layer2_output = current_layer2_output
 
     return {
         "target_characters": target_characters,
         "initial_layer1_state": initial_layer1_state,
+        "initial_layer1_output": initial_layer1_output,
         "initial_layer2_state": initial_layer2_state,
+        "initial_layer2_output": initial_layer2_output,
         "start_character": start_character,
 
         "total_mean_loss": total_mean_loss,
         "total_accuracy": total_accuracy,
         "train_step": train_step,
+
         "final_layer1_state": final_layer1_state,
-        "final_layer2_state": final_layer2_state
+        "final_layer1_output": final_layer1_output,
+        "final_layer2_state": final_layer2_state,
+        "final_layer2_output": final_layer2_output,
     }
