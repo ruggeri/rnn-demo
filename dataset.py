@@ -8,9 +8,10 @@ def to_categorical(idx):
     res[idx] = 1.0
     return res
 
-text = None
-with open(FNAME, 'r') as f:
-    text = f.read()
+text = ""
+for fname in ["1342.txt", "158.txt", "21839.txt"]:
+    with open(fname, 'r') as f:
+        text += f.read()
 
 def split_text(text):
     int_text = [
