@@ -15,14 +15,15 @@ session.run(tf.global_variables_initializer())
 def run_batch(prior_state, start_character, batch):
     keys = {
         "initial_layer1_state",
+        "initial_layer1_output",
         "initial_layer2_state",
-        "initial_layer1_output",
-        "initial_layer1_output",
+        "initial_layer2_output",
     }
     state_input = {
         graph[key]: prior_state[key] for key in keys
     }
     state_input[graph["start_character"]] = start_character
+    state_input[graph["target_characters"]] = batch
 
     _, next_state, metrics = session.run(
         [
@@ -44,10 +45,10 @@ def run_batch(prior_state, start_character, batch):
 
 def run_epoch(epoch_idx):
     current_state = {
-        graph["initial_layer1_state"]: np.zeros((BATCH_SIZE, LAYER1_SIZE)),
-        graph["initial_layer1_output"]: np.zeros((BATCH_SIZE, LAYER1_SIZE)),
-        graph["initial_layer2_state"]: np.zeros((BATCH_SIZE, LAYER2_SIZE)),
-        graph["initial_layer2_output"]: np.zeros((BATCH_SIZE, LAYER2_SIZE)),
+        "initial_layer1_state": np.zeros((BATCH_SIZE, LAYER1_SIZE)),
+        "initial_layer1_output": np.zeros((BATCH_SIZE, LAYER1_SIZE)),
+        "initial_layer2_state": np.zeros((BATCH_SIZE, LAYER2_SIZE)),
+        "initial_layer2_output": np.zeros((BATCH_SIZE, LAYER2_SIZE)),
     }
 
     start_character = np.zeros((BATCH_SIZE, NUM_CHARS))

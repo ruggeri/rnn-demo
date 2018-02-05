@@ -86,11 +86,11 @@ def build_graph(string_length, train_mode):
         )
         all_emission_probabilities.append(next_emission_probabilities)
 
-        # teacher forcing
         current_layer1_state = next_layer1_state
         current_layer1_output = next_layer1_output
         current_layer2_state = next_layer2_state
         current_layer2_output = next_layer2_output
+        # teacher forcing
         current_character = target_characters[:, string_idx, :]
 
     # Compute losses:
