@@ -10,7 +10,7 @@ def build_graph(string_length, train_mode):
     # The family of Dashwood
     target_characters = tf.placeholder(
         tf.float64,
-        (None, BATCH_STRING_LENGTH, NUM_CHARS),
+        (None, string_length, NUM_CHARS),
         name = "target_characters"
     )
     # 256 zeros for the initial state.
@@ -61,7 +61,7 @@ def build_graph(string_length, train_mode):
     current_character = start_character
     all_emission_probability_logits = []
     all_emission_probabilities = []
-    for string_idx in range(BATCH_STRING_LENGTH):
+    for string_idx in range(string_length):
         next_layer1_state, next_layer1_output = lstm_layer1(
             current_layer1_state, current_layer1_output, current_character
         )
