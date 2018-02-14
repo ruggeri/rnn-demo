@@ -8,10 +8,15 @@ def to_categorical(idx):
     res[idx] = 1.0
     return res
 
+def remove_non_ascii(text):
+    return text.encode('ascii', errors = 'ignore').decode()
+
 text = ""
 for fname in ["1342.txt", "158.txt", "21839.txt"]:
     with open(fname, 'r') as f:
-        text += f.read()
+        new_text = f.read()
+        new_text = remove_non_ascii(new_text)
+        text += new_text
 
 def split_text(text):
     int_text = [
